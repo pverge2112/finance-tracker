@@ -1,0 +1,37 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: finance-tracker-server
+  namespace: finance-tracker
+  labels:
+    app: finance-tracker
+    component: server
+spec:
+  type: ClusterIP
+  ports:
+    - port: 3001
+      targetPort: 3001
+      protocol: TCP
+      name: http
+  selector:
+    app: finance-tracker
+    component: server
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: finance-tracker-client
+  namespace: finance-tracker
+  labels:
+    app: finance-tracker
+    component: client
+spec:
+  type: ClusterIP
+  ports:
+    - port: 80
+      targetPort: 80
+      protocol: TCP
+      name: http
+  selector:
+    app: finance-tracker
+    component: client

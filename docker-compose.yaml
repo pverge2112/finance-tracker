@@ -1,0 +1,28 @@
+services:
+  server:
+    build: ./server
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=production
+      - DB_PATH=/data/finance.db
+    volumes:
+      - finance-data:/data
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3001/api/categories"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  client:
+    build: ./client
+    ports:
+      - "8080:80"
+    environment:
+      - API_URL=http://server:3001/api
+    depends_on:
+      server:
+        condition: service_healthy
+
+volumes:
+  finance-data:

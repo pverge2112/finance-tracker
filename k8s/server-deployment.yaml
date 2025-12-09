@@ -1,0 +1,58 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: finance-tracker-server
+  namespace: finance-tracker
+  labels:
+    app: finance-tracker
+    component: server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: finance-tracker
+      component: server
+  template:
+    metadata:
+      labels:
+        app: finance-tracker
+        component: server
+    spec:
+      containers:
+        - name: server
+          image: finance-tracker-server:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 3001
+              name: http
+          env:
+            - name: NODE_ENV
+              value: "production"
+            - name: DB_PATH
+              value: "/data/finance.db"
+          volumeMounts:
+            - name: data
+              mountPath: /data
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "256Mi"
+              cpu: "500m"
+          livenessProbe:
+            httpGet:
+              path: /api/categories
+              port: 3001
+            initialDelaySeconds: 10
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /api/categories
+              port: 3001
+            initialDelaySeconds: 5
+            periodSeconds: 10
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: finance-tracker-data
