@@ -30,6 +30,8 @@ spec:
               value: "production"
             - name: DB_PATH
               value: "/data/finance.db"
+            - name: SEED_DB
+              value: "true"
           volumeMounts:
             - name: data
               mountPath: /data

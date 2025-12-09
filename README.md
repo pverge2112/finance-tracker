@@ -45,7 +45,8 @@ finance-tracker/
 ├── server/                 # Express backend
 │   ├── src/
 │   │   ├── index.ts        # API routes
-│   │   └── db.ts           # SQLite setup
+│   │   ├── db.ts           # SQLite setup
+│   │   └── seed.ts         # Database seeding
 │   └── Dockerfile
 ├── k8s/                    # Kubernetes manifests
 │   ├── namespace.yaml
@@ -98,7 +99,13 @@ finance-tracker/
    npm run dev:server    # Backend on port 3001
    ```
 
-4. **Open the application**
+4. **Seed the database (optional)**
+   ```bash
+   cd server && npm run seed
+   ```
+   This populates the database with sample transactions and savings goals. Use `npm run seed:force` to clear existing data and reseed.
+
+5. **Open the application**
    Navigate to http://localhost:5173 in your browser.
 
 ### Local Development with Docker
@@ -107,6 +114,7 @@ finance-tracker/
    ```bash
    docker-compose up --build
    ```
+   The database is automatically seeded with sample data on first run.
 
 2. **Access the application**
    - Frontend: http://localhost:8080
@@ -288,7 +296,7 @@ kubectl apply -k k8s/
 This creates:
 - `finance-tracker` namespace
 - PersistentVolumeClaim for SQLite data
-- Server deployment (1 replica)
+- Server deployment (1 replica) - database is automatically seeded on first run
 - Client deployment (2 replicas)
 - ClusterIP services
 - Gateway and HTTPRoute resources
@@ -504,6 +512,7 @@ kind delete cluster --name finance-tracker
 |----------|---------|-------------|
 | `DB_PATH` | `./finance.db` | SQLite database file path |
 | `PORT` | `3001` | Server port (hardcoded) |
+| `SEED_DB` | `true` (Docker) | Seed database with sample data on startup |
 
 ### Client (Docker)
 | Variable | Default | Description |
@@ -524,6 +533,10 @@ cd server && npx tsc     # Type-check server
 
 # Lint
 cd client && npm run lint
+
+# Database Seeding
+cd server && npm run seed        # Seed database (skips if data exists)
+cd server && npm run seed:force  # Clear and reseed database
 
 # Docker
 docker-compose up --build

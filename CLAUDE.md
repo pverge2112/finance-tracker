@@ -27,6 +27,12 @@ cd client && npm run build              # Build client only
 cd client && npm run lint               # Lint client code
 ```
 
+### Database Seeding
+```bash
+cd server && npm run seed               # Seed database (skips if data exists)
+cd server && npm run seed:force         # Clear and reseed database
+```
+
 ### Docker
 ```bash
 docker-compose up --build               # Run locally with Docker
@@ -59,6 +65,7 @@ kubectl -n finance-tracker port-forward svc/finance-tracker-client 8080:80
 
 ### Backend (server/)
 - **Database**: SQLite with `better-sqlite3`, schema auto-created on startup
+- **Seeding**: `src/seed.ts` populates sample transactions and goals; runs automatically in Docker/K8s when `SEED_DB=true` or database doesn't exist
 - **API Routes**: RESTful endpoints under `/api/`
   - `/api/transactions` - CRUD for income/expenses
   - `/api/goals` - CRUD for savings goals
