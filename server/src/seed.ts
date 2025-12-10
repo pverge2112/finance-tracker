@@ -1,18 +1,5 @@
 import db from './db.js';
 
-// Categories (matching those defined in index.ts)
-const incomeCategories = ['Salary', 'Freelance', 'Investments', 'Gifts', 'Other Income'];
-const expenseCategories = ['Food & Dining', 'Transportation', 'Shopping', 'Entertainment', 'Bills & Utilities', 'Healthcare', 'Travel', 'Education', 'Other'];
-
-// Helper to generate a random date within the last N months
-function randomDate(monthsBack: number): string {
-  const now = new Date();
-  const start = new Date(now.getFullYear(), now.getMonth() - monthsBack, 1);
-  const end = now;
-  const date = new Date(start.getTime() + Math.random() * (end.getTime() - start.getTime()));
-  return date.toISOString().split('T')[0];
-}
-
 // Sample transactions data
 const sampleTransactions = [
   // Income - recurring salary
@@ -116,70 +103,77 @@ const sampleGoals = [
   { name: 'Home Down Payment', target_amount: 50000, current_amount: 12000, deadline: '2027-01-01', color: '#ec4899' },
 ];
 
-async function seed() {
-  console.log('Starting database seed...\n');
+function seed() {
+  try {
+    console.log('Starting database seed...');
+    console.log(`Database path: ${process.env.DB_PATH || 'default'}`);
 
-  // Check if data already exists
-  const existingTransactions = db.prepare('SELECT COUNT(*) as count FROM transactions').get() as { count: number };
-  const existingGoals = db.prepare('SELECT COUNT(*) as count FROM goals').get() as { count: number };
+    // Check if data already exists
+    const existingTransactions = db.prepare('SELECT COUNT(*) as count FROM transactions').get() as { count: number };
+    const existingGoals = db.prepare('SELECT COUNT(*) as count FROM goals').get() as { count: number };
 
-  if (existingTransactions.count > 0 || existingGoals.count > 0) {
-    console.log('Database already contains data:');
-    console.log(`  - Transactions: ${existingTransactions.count}`);
-    console.log(`  - Goals: ${existingGoals.count}`);
-    console.log('\nTo reseed, first clear the existing data or delete the database file.');
-    console.log('Run with --force to clear existing data and reseed.\n');
+    if (existingTransactions.count > 0 || existingGoals.count > 0) {
+      console.log('Database already contains data:');
+      console.log(`  - Transactions: ${existingTransactions.count}`);
+      console.log(`  - Goals: ${existingGoals.count}`);
+      console.log('\nTo reseed, first clear the existing data or delete the database file.');
+      console.log('Run with --force to clear existing data and reseed.\n');
 
-    if (process.argv.includes('--force')) {
-      console.log('--force flag detected. Clearing existing data...\n');
-      db.prepare('DELETE FROM transactions').run();
-      db.prepare('DELETE FROM goals').run();
-    } else {
-      process.exit(0);
+      if (process.argv.includes('--force')) {
+        console.log('--force flag detected. Clearing existing data...\n');
+        db.prepare('DELETE FROM transactions').run();
+        db.prepare('DELETE FROM goals').run();
+      } else {
+        console.log('Skipping seed (data already exists).');
+        return;
+      }
     }
+
+    // Insert transactions
+    console.log('Inserting sample transactions...');
+    const insertTransaction = db.prepare(
+      'INSERT INTO transactions (type, amount, category, description, date) VALUES (?, ?, ?, ?, ?)'
+    );
+
+    const insertTransactions = db.transaction((transactions: typeof sampleTransactions) => {
+      for (const t of transactions) {
+        insertTransaction.run(t.type, t.amount, t.category, t.description, t.date);
+      }
+    });
+
+    insertTransactions(sampleTransactions);
+    console.log(`  Inserted ${sampleTransactions.length} transactions`);
+
+    // Insert goals
+    console.log('Inserting sample goals...');
+    const insertGoal = db.prepare(
+      'INSERT INTO goals (name, target_amount, current_amount, deadline, color) VALUES (?, ?, ?, ?, ?)'
+    );
+
+    const insertGoals = db.transaction((goals: typeof sampleGoals) => {
+      for (const g of goals) {
+        insertGoal.run(g.name, g.target_amount, g.current_amount, g.deadline, g.color);
+      }
+    });
+
+    insertGoals(sampleGoals);
+    console.log(`  Inserted ${sampleGoals.length} goals`);
+
+    // Summary
+    console.log('\nSeed completed successfully!');
+    console.log('\nSummary of seeded data:');
+
+    const incomeTotal = db.prepare("SELECT SUM(amount) as total FROM transactions WHERE type = 'income'").get() as { total: number };
+    const expenseTotal = db.prepare("SELECT SUM(amount) as total FROM transactions WHERE type = 'expense'").get() as { total: number };
+
+    console.log(`  Total Income: $${incomeTotal.total.toLocaleString()}`);
+    console.log(`  Total Expenses: $${expenseTotal.total.toLocaleString()}`);
+    console.log(`  Net Savings: $${(incomeTotal.total - expenseTotal.total).toLocaleString()}`);
+    console.log(`  Goals: ${sampleGoals.length}`);
+  } catch (error) {
+    console.error('Error seeding database:', error);
+    process.exit(1);
   }
-
-  // Insert transactions
-  console.log('Inserting sample transactions...');
-  const insertTransaction = db.prepare(
-    'INSERT INTO transactions (type, amount, category, description, date) VALUES (?, ?, ?, ?, ?)'
-  );
-
-  const insertTransactions = db.transaction((transactions: typeof sampleTransactions) => {
-    for (const t of transactions) {
-      insertTransaction.run(t.type, t.amount, t.category, t.description, t.date);
-    }
-  });
-
-  insertTransactions(sampleTransactions);
-  console.log(`  Inserted ${sampleTransactions.length} transactions`);
-
-  // Insert goals
-  console.log('Inserting sample goals...');
-  const insertGoal = db.prepare(
-    'INSERT INTO goals (name, target_amount, current_amount, deadline, color) VALUES (?, ?, ?, ?, ?)'
-  );
-
-  const insertGoals = db.transaction((goals: typeof sampleGoals) => {
-    for (const g of goals) {
-      insertGoal.run(g.name, g.target_amount, g.current_amount, g.deadline, g.color);
-    }
-  });
-
-  insertGoals(sampleGoals);
-  console.log(`  Inserted ${sampleGoals.length} goals`);
-
-  // Summary
-  console.log('\nSeed completed successfully!');
-  console.log('\nSummary of seeded data:');
-
-  const incomeTotal = db.prepare("SELECT SUM(amount) as total FROM transactions WHERE type = 'income'").get() as { total: number };
-  const expenseTotal = db.prepare("SELECT SUM(amount) as total FROM transactions WHERE type = 'expense'").get() as { total: number };
-
-  console.log(`  Total Income: $${incomeTotal.total.toLocaleString()}`);
-  console.log(`  Total Expenses: $${expenseTotal.total.toLocaleString()}`);
-  console.log(`  Net Savings: $${(incomeTotal.total - expenseTotal.total).toLocaleString()}`);
-  console.log(`  Goals: ${sampleGoals.length}`);
 }
 
 seed();

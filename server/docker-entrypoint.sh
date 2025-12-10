@@ -1,8 +1,14 @@
 #!/bin/sh
 set -e
 
-# Run database seed if SEED_DB is set to true or if database doesn't exist
-if [ "$SEED_DB" = "true" ] || [ ! -f "$DB_PATH" ]; then
+# Run database seed based on SEED_DB setting
+# SEED_DB=true  - seed only if database is empty
+# SEED_DB=force - clear and reseed database
+# unset/false   - skip seeding
+if [ "$SEED_DB" = "force" ]; then
+  echo "Force seeding database..."
+  node dist/seed.js --force
+elif [ "$SEED_DB" = "true" ] || [ ! -f "$DB_PATH" ]; then
   echo "Seeding database..."
   node dist/seed.js
 fi
